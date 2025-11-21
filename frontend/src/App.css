@@ -1,0 +1,84 @@
+@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Warm Beige Theme - Converted for Vite Compatibility */
+  --background: #fdfbf7; /* Very light warm cream */
+  --foreground: #1a1a1a; /* Soft black */
+
+  --card: #faf9f6;
+  --card-foreground: #1a1a1a;
+
+  --popover: #fdfbf7;
+  --popover-foreground: #1a1a1a;
+
+  --primary: #1a1a1a;
+  --primary-foreground: #fdfbf7;
+
+  --secondary: #f4f2ed; /* Very light beige */
+  --secondary-foreground: #1a1a1a;
+
+  --muted: #f4f2ed;
+  --muted-foreground: #787878;
+
+  --accent: #f0efe9;
+  --accent-foreground: #1a1a1a;
+
+  --destructive: #ef4444;
+  --destructive-foreground: #fdfbf7;
+
+  --border: #e6e4dd;
+  --input: #e6e4dd;
+  --ring: #1a1a1a;
+
+  --radius: 0.5rem;
+
+  /* Sidebar specific */
+  --sidebar: #f7f6f2;
+  --sidebar-foreground: #1a1a1a;
+  --sidebar-primary: #1a1a1a;
+  --sidebar-primary-foreground: #fdfbf7;
+  --sidebar-accent: #ecebe6;
+  --sidebar-accent-foreground: #1a1a1a;
+  --sidebar-border: #e6e4dd;
+  --sidebar-ring: #1a1a1a;
+}
+
+/* Global Reset */
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  font-family: "Inter", sans-serif;
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background-color: #d4d4d4;
+  border-radius: 20px;
+}
+
+/* Login Page specific */
+.login-wrapper {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--background);
+  z-index: 50;
+}
