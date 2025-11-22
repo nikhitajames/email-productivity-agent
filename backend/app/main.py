@@ -10,6 +10,7 @@ from pydantic import BaseModel
 # Relative imports
 from . import models, schemas, database
 from .agent import process_single_email, chat_with_single_email
+from .mock_data import get_mock_emails 
 
 # 1. Database Setup
 models.Base.metadata.create_all(bind=database.engine)
@@ -38,9 +39,10 @@ class Message(BaseModel):
     role: str
     content: str
 
+# ONLY ONE DEFINITION OF CHATREQUEST ALLOWED
 class ChatRequest(BaseModel):
     query: str
-    history: List[Message] = []
+    history: List[Message] = [] 
 
 # --- ENDPOINTS ---
 
@@ -77,7 +79,7 @@ def process_all_emails(db: Session = Depends(get_db)):
             process_single_email(email, db)
             count += 1
         except Exception as e:
-            print(f"Error: {e}")
+            print(f"Error processing email {email.id}: {e}")
             continue
     return {"message": f"Processed {count} emails."}
 
@@ -87,58 +89,29 @@ def chat_email(email_id: int, chat_req: ChatRequest, db: Session = Depends(get_d
     if not email:
         raise HTTPException(status_code=404, detail="Email not found")
     
+    # Call the Agent Logic WITH HISTORY
     response_text = chat_with_single_email(
         email_body=email.body, 
         user_query=chat_req.query,
         sender=email.sender,
         history=chat_req.history 
     )
+    
     return {"response": response_text}
 
-# --- IMPROVED RESET ENDPOINT (Auto-Categorization) ---
 @app.post("/reset-db")
 def reset_database(db: Session = Depends(get_db)):
     """
-    Wipes DB, creates mock emails, AND runs the agent immediately.
+    Wipes DB, creates realistic mock emails from mock_data.py, AND runs the agent.
     """
     try:
-        # 1. Clear Data
+        # 1. Clear Old Data
         db.query(models.Email).delete()
         db.commit()
 
-        # 2. Create Mock Emails
-        mock_emails = [
-            {
-                "sender": "boss@company.com",
-                "subject": "Project Deadline Urgent",
-                "body": "Hi Nikhita, we need to finish the Q3 report by Friday 5 PM. Please send me the draft before then.",
-                "timestamp": datetime.utcnow()
-            },
-            {
-                "sender": "newsletter@techweekly.com",
-                "subject": "Top 10 AI Tools in 2025",
-                "body": "Check out the latest tools in Agentic AI! LangGraph is taking over...",
-                "timestamp": datetime.utcnow() - timedelta(hours=2)
-            },
-            {
-                "sender": "hr@company.com",
-                "subject": "Meeting: Performance Review",
-                "body": "Hi, I would like to schedule your performance review for next Tuesday at 10 AM. Let me know if that works.",
-                "timestamp": datetime.utcnow() - timedelta(days=1)
-            },
-            {
-                "sender": "spam@lottery.com",
-                "subject": "YOU WON $1,000,000!",
-                "body": "Click here to claim your prize now! Urgent!",
-                "timestamp": datetime.utcnow() - timedelta(days=2)
-            },
-             {
-                "sender": "client@bigcorp.com",
-                "subject": "Contract Revision",
-                "body": "Please review the attached contract changes and get back to us by Monday.",
-                "timestamp": datetime.utcnow() - timedelta(hours=5)
-            }
-        ]
+        # 2. Load Rich Mock Data
+        print("Loading mock data...") 
+        mock_emails = get_mock_emails() # <--- Calling the function from mock_data.py
 
         created_emails = []
         for e in mock_emails:
@@ -154,6 +127,8 @@ def reset_database(db: Session = Depends(get_db)):
         
         db.commit()
 
+        # 3. Trigger AI Processing
+        print("Processing emails with AI...")
         for email in created_emails:
             db.refresh(email)
             process_single_email(email, db)
