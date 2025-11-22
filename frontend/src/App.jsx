@@ -7,12 +7,16 @@ import {
   PenTool,
   ArrowLeft,
   LogOut,
-  Archive,
-  Trash2,
   Star,
   X,
   Send,
   RefreshCw,
+  Trash2,
+  CheckCircle2,
+  Calendar,
+  Lightbulb,
+  Check,
+  XCircle,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -28,7 +32,6 @@ export default function App() {
   const [emails, setEmails] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
 
-  // FIX: Store ID only
   const [selectedEmailId, setSelectedEmailId] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -53,9 +56,15 @@ export default function App() {
     try {
       await axios.post("http://127.0.0.1:8000/reset-db");
       const res = await axios.get("http://127.0.0.1:8000/emails/");
-      setEmails(res.data);
+      // Initialize isStarred property since backend doesn't have it yet
+      const initializedEmails = res.data.map((e) => ({
+        ...e,
+        isStarred: false,
+      }));
+      setEmails(initializedEmails);
       setIsLoggedIn(true);
     } catch (error) {
+      console.error(error);
       alert("Backend error. Is python running?");
     }
     setLoading(false);
@@ -65,9 +74,18 @@ export default function App() {
     setLoading(true);
     try {
       await axios.post("http://127.0.0.1:8000/process-emails/");
-      // Refresh data to get new drafts
+      // Refresh data
       const res = await axios.get("http://127.0.0.1:8000/emails/");
-      setEmails(res.data);
+      // Preserve local star state when refreshing from backend
+      setEmails((prevEmails) => {
+        return res.data.map((newEmail) => {
+          const existing = prevEmails.find((e) => e.id === newEmail.id);
+          return {
+            ...newEmail,
+            isStarred: existing ? existing.isStarred : false,
+          };
+        });
+      });
     } catch (e) {
       alert("Error processing");
     }
@@ -81,7 +99,6 @@ export default function App() {
     setChatLoading(true);
     setChatQuery("");
 
-    // Optimistic Update
     setChatHistory((prev) => [...prev, { q: currentQuery, a: "" }]);
 
     try {
@@ -98,7 +115,6 @@ export default function App() {
         }
       );
 
-      // Update with real response
       setChatHistory((prev) => {
         const newHistory = [...prev];
         newHistory[newHistory.length - 1] = {
@@ -131,6 +147,16 @@ export default function App() {
     }
   };
 
+  // Fixed Star Logic
+  const toggleStar = () => {
+    if (!selectedEmail) return;
+    setEmails((prevEmails) =>
+      prevEmails.map((e) =>
+        e.id === selectedEmail.id ? { ...e, isStarred: !e.isStarred } : e
+      )
+    );
+  };
+
   const saveAllPrompts = async () => {
     try {
       await Promise.all(
@@ -146,6 +172,32 @@ export default function App() {
     }
   };
 
+  const handleSuggestion = (suggestion, accepted) => {
+    if (accepted) {
+      alert(`!!Action Taken:\n"${suggestion}" has been executed.`);
+      removeSuggestionFromState(suggestion);
+    } else {
+      removeSuggestionFromState(suggestion);
+    }
+  };
+
+  const removeSuggestionFromState = (suggestionToRemove) => {
+    setEmails((prevEmails) =>
+      prevEmails.map((email) => {
+        if (email.id === selectedEmail.id) {
+          const newActionItems = { ...email.action_items };
+          if (newActionItems.suggestions) {
+            newActionItems.suggestions = newActionItems.suggestions.filter(
+              (s) => s !== suggestionToRemove
+            );
+          }
+          return { ...email, action_items: newActionItems };
+        }
+        return email;
+      })
+    );
+  };
+
   const filteredEmails = emails.filter(
     (e) =>
       e.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -158,10 +210,10 @@ export default function App() {
       <div className="login-wrapper">
         <div className="animate-in fade-in zoom-in duration-700 text-center px-4 w-full max-w-md">
           <h1 className="font-serif text-5xl mb-6 text-primary tracking-tight">
-            Effortless Inbox
+            Email Productivity Agent
           </h1>
           <p className="text-muted-foreground text-lg mb-8 font-sans font-light">
-            Intelligent automation powered by Agentic AI.
+            Your Personal Inbox Assisstant- Zero clutter. Maximum focus.
           </p>
 
           <div className="space-y-3 mb-8 text-left">
@@ -207,12 +259,6 @@ export default function App() {
         <aside className="w-80 flex-shrink-0 border-r border-sidebar-border bg-sidebar flex flex-col animate-in slide-in-from-left duration-300">
           <div className="p-4 border-b border-sidebar-border flex items-center justify-between sticky top-0 bg-sidebar z-10">
             <h1 className="text-xl font-semibold tracking-tight">Inbox</h1>
-            <button
-              onClick={() => setIsLoggedIn(false)}
-              className="text-muted-foreground hover:text-foreground"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
           </div>
 
           <div className="p-4 pt-2">
@@ -269,6 +315,9 @@ export default function App() {
                 >
                   {email.category}
                 </span>
+                {email.isStarred && (
+                  <Star className="w-3 h-3 fill-yellow-400 text-yellow-400 absolute bottom-4 right-4" />
+                )}
               </div>
             ))}
           </div>
@@ -279,30 +328,55 @@ export default function App() {
       <main className="flex-1 flex flex-col min-w-0 bg-background relative transition-all duration-500">
         {/* Header */}
         <header className="h-14 border-b border-border flex items-center justify-between px-6 bg-background/95 backdrop-blur sticky top-0 z-10">
+          {/* LEFT SIDE: Only Star and Trash */}
           <div className="flex items-center gap-2 text-muted-foreground">
-            <Archive className="w-4 h-4 hover:text-primary cursor-pointer" />
+            <button
+              onClick={toggleStar}
+              className="hover:text-yellow-500 transition-colors p-2 rounded-full hover:bg-sidebar"
+              title="Star"
+              disabled={!selectedEmail}
+            >
+              <Star
+                className={cn(
+                  "w-4 h-4",
+                  selectedEmail?.isStarred
+                    ? "fill-yellow-400 text-yellow-400"
+                    : ""
+                )}
+              />
+            </button>
             <button
               onClick={deleteEmail}
-              className="hover:text-red-500 transition-colors"
+              className="hover:text-red-500 transition-colors p-2 rounded-full hover:bg-sidebar"
+              title="Delete"
+              disabled={!selectedEmail}
             >
               <Trash2 className="w-4 h-4" />
             </button>
-            <div className="w-px h-4 bg-border mx-1" />
-            <Star className="w-4 h-4 hover:text-primary cursor-pointer" />
           </div>
 
-          <button
-            onClick={() => {
-              setShowPrompts(true);
-              axios
-                .get("http://127.0.0.1:8000/prompts/")
-                .then((r) => setPrompts(r.data));
-            }}
-            className="flex items-center gap-2 px-4 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-sm font-medium shadow-sm font-sans"
-          >
-            <Settings className="w-4 h-4" />
-            <span>Configure Brain</span>
-          </button>
+          {/* RIGHT SIDE: Configure & Logout */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                setShowPrompts(true);
+                axios
+                  .get("http://127.0.0.1:8000/prompts/")
+                  .then((r) => setPrompts(r.data));
+              }}
+              className="flex items-center gap-2 px-4 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-sm font-medium shadow-sm font-sans"
+            >
+              <Settings className="w-4 h-4" />
+              <span>Configure Brain</span>
+            </button>
+            <button
+              onClick={() => setIsLoggedIn(false)}
+              className="flex items-center gap-2 px-4 py-2 rounded-md border border-input hover:bg-sidebar transition-colors text-sm font-medium font-sans"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>Logout</span>
+            </button>
+          </div>
         </header>
 
         <div className="flex flex-1 overflow-hidden">
@@ -312,9 +386,10 @@ export default function App() {
               <div
                 className={cn(
                   "flex-1 overflow-y-auto p-8 transition-all duration-500 ease-in-out",
+                  // Resizing logic: If Chat OR Action Sidebar (default) is visible, share space
                   isChatOpen
                     ? "w-1/2 border-r border-border pr-6"
-                    : "w-full max-w-3xl mx-auto"
+                    : "flex-1 pr-0"
                 )}
               >
                 {!showInbox && (
@@ -330,9 +405,15 @@ export default function App() {
                 )}
 
                 <div className="mb-8 pb-6 border-b border-border">
-                  <h1 className="text-3xl font-serif font-medium leading-tight mb-2">
-                    {selectedEmail.subject}
-                  </h1>
+                  <div className="flex justify-between items-start mb-2">
+                    <h1 className="text-3xl font-serif font-medium leading-tight">
+                      {selectedEmail.subject}
+                    </h1>
+                    {selectedEmail.isStarred && (
+                      <Star className="w-6 h-6 fill-yellow-400 text-yellow-400 flex-shrink-0" />
+                    )}
+                  </div>
+
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-lg font-serif border border-border">
@@ -431,7 +512,92 @@ export default function App() {
                 <div className="h-12"></div>
               </div>
 
-              {/* Chat Sidebar */}
+              {/* === RIGHT SIDEBAR (ACTIONS & SUGGESTIONS) === */}
+              {!isChatOpen && (
+                <div className="w-80 bg-sidebar/30 border-l border-border flex flex-col animate-in slide-in-from-right duration-500 overflow-y-auto">
+                  <div className="p-6 border-b border-border bg-sidebar/50 backdrop-blur sticky top-0 z-10">
+                    <h3 className="font-serif font-medium text-lg flex items-center gap-2">
+                      <Lightbulb className="w-5 h-5 text-yellow-600" />
+                      ACTIONS
+                    </h3>
+                  </div>
+
+                  <div className="p-6 space-y-8">
+                    {/* 1. Tasks Section */}
+                    <div>
+                      <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-4 font-sans flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4" /> Detected Tasks
+                      </h4>
+                      {selectedEmail.action_items?.tasks?.length > 0 ? (
+                        <ul className="space-y-3">
+                          {selectedEmail.action_items.tasks.map((task, idx) => (
+                            <li
+                              key={idx}
+                              className="flex items-start gap-3 text-sm group"
+                            >
+                              <div className="mt-1 w-1.5 h-1.5 rounded-full bg-primary shrink-0 group-hover:scale-125 transition-transform" />
+                              <span className="text-foreground/90 leading-relaxed">
+                                {task}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-sm text-muted-foreground italic">
+                          No specific tasks detected.
+                        </p>
+                      )}
+                    </div>
+
+                    {/* 2. Suggestions Section */}
+                    <div>
+                      <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-4 font-sans flex items-center gap-2">
+                        <Calendar className="w-4 h-4" /> Suggested Follow-ups
+                      </h4>
+                      {selectedEmail.action_items?.suggestions?.length > 0 ? (
+                        <div className="space-y-3">
+                          {selectedEmail.action_items.suggestions.map(
+                            (suggestion, idx) => (
+                              <div
+                                key={idx}
+                                className="bg-background border border-input rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow"
+                              >
+                                <p className="text-sm text-foreground/90 mb-3 font-medium leading-relaxed">
+                                  {suggestion}
+                                </p>
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={() =>
+                                      handleSuggestion(suggestion, true)
+                                    }
+                                    className="flex-1 flex items-center justify-center gap-1.5 py-1.5 bg-primary text-primary-foreground text-xs rounded-lg hover:opacity-90 transition-all"
+                                  >
+                                    <Check className="w-3 h-3" /> Accept
+                                  </button>
+                                  <button
+                                    onClick={() =>
+                                      handleSuggestion(suggestion, false)
+                                    }
+                                    className="flex-1 flex items-center justify-center gap-1.5 py-1.5 bg-secondary text-secondary-foreground border border-border text-xs rounded-lg hover:bg-secondary/80 transition-all"
+                                  >
+                                    <XCircle className="w-3 h-3" /> Dismiss
+                                  </button>
+                                </div>
+                              </div>
+                            )
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground italic">
+                          No suggestions available.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Chat Sidebar (Existing) */}
               {isChatOpen && (
                 <div className="w-[450px] bg-sidebar/50 border-l border-border flex flex-col animate-in slide-in-from-right-10 duration-300 shadow-xl z-40">
                   <div className="p-4 border-b border-border flex items-center justify-between bg-sidebar/80 backdrop-blur">
@@ -453,18 +619,15 @@ export default function App() {
                         Ask me to summarize or draft a reply...
                       </div>
                     )}
-
-                    {/* --- CORRECTED RENDER LOGIC --- */}
                     {chatHistory.map((msg, i) => (
                       <div key={i} className="flex flex-col gap-4">
-                        {/* 1. User Bubble (Right) */}
+                        {/* User Message */}
                         <div className="flex justify-end">
                           <div className="bg-primary text-primary-foreground p-3 rounded-2xl rounded-br-sm max-w-[85%] text-sm font-sans shadow-sm">
                             {msg.q}
                           </div>
                         </div>
-
-                        {/* 2. AI Bubble (Left) - Only if answer exists */}
+                        {/* AI Message */}
                         {msg.a ? (
                           <div className="flex justify-start">
                             <div className="bg-background border border-border p-3 rounded-2xl rounded-bl-sm max-w-[85%] text-sm font-sans shadow-sm leading-relaxed">
@@ -472,16 +635,14 @@ export default function App() {
                             </div>
                           </div>
                         ) : (
-                          /* Loading State Placeholder */
                           <div className="flex justify-start">
                             <div className="text-xs text-muted-foreground animate-pulse pl-2 font-sans">
-                              Generating response...
+                              Generating...
                             </div>
                           </div>
                         )}
                       </div>
                     ))}
-                    {/* ------------------------------ */}
                   </div>
 
                   <div className="p-4 border-t border-border bg-background/50 backdrop-blur">
@@ -515,7 +676,6 @@ export default function App() {
         </div>
       </main>
 
-      {/* PROMPTS MODAL */}
       {showPrompts && (
         <div
           className="fixed inset-0 bg-primary/10 backdrop-blur-sm flex items-center justify-center z-50"

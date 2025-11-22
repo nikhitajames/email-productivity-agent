@@ -5,9 +5,8 @@
 @tailwind utilities;
 
 :root {
-  /* Warm Beige Theme - Converted for Vite Compatibility */
-  --background: #fdfbf7; /* Very light warm cream */
-  --foreground: #1a1a1a; /* Soft black */
+  --background: #fdfbf7;
+  --foreground: #1a1a1a;
 
   --card: #faf9f6;
   --card-foreground: #1a1a1a;
@@ -71,7 +70,7 @@ body,
   border-radius: 20px;
 }
 
-/* Login Page specific */
+/* Login Page*/
 .login-wrapper {
   position: fixed;
   inset: 0;

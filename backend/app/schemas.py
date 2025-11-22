@@ -1,8 +1,7 @@
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from datetime import datetime
 
-# Prompt Schemas
 class PromptBase(BaseModel):
     prompt_type: str
     content: str
@@ -15,7 +14,6 @@ class PromptResponse(PromptBase):
     class Config:
         orm_mode = True
 
-# Email Schemas
 class EmailBase(BaseModel):
     sender: str
     subject: str
@@ -25,7 +23,7 @@ class EmailResponse(EmailBase):
     id: int
     timestamp: datetime
     category: str
-    action_items: Optional[List[dict]] = []
+    action_items: Optional[Dict[str, Any]] = {} 
     suggested_reply: Optional[str] = None
     
     class Config:

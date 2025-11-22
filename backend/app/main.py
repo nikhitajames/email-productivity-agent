@@ -99,19 +99,42 @@ def chat_email(email_id: int, chat_req: ChatRequest, db: Session = Depends(get_d
     
     return {"response": response_text}
 
+# --- IMPROVED RESET ENDPOINT ---
 @app.post("/reset-db")
 def reset_database(db: Session = Depends(get_db)):
     """
-    Wipes DB, creates realistic mock emails from mock_data.py, AND runs the agent.
+    Wipes DB, Re-seeds Prompts, Creates realistic mock emails, AND runs the agent.
     """
     try:
-        # 1. Clear Old Data
+        # 1. Clear Old Data (Emails AND Prompts)
         db.query(models.Email).delete()
+        db.query(models.Prompt).delete()
         db.commit()
 
-        # 2. Load Rich Mock Data
-        print("Loading mock data...") 
-        mock_emails = get_mock_emails() # <--- Calling the function from mock_data.py
+        # 2. Seed Default Prompts (The "Brain")
+        # These are the instructions the Agent uses.
+        default_prompts = [
+            {
+                "prompt_type": "categorize",
+                "content": "Categorize the following email into one of these categories: 'Work', 'Personal', 'Spam', 'Newsletter', 'Urgent'. Return only the category name."
+            },
+            {
+                "prompt_type": "extract_actions",
+                "content": "Extract action items and suggestions from the email."
+            },
+            {
+                "prompt_type": "auto_reply",
+                "content": "You are a helpful assistant. Draft a professional and polite reply to this email. If it is a meeting request, ask for an agenda. Keep it concise."
+            }
+        ]
+        
+        for p in default_prompts:
+            db_prompt = models.Prompt(prompt_type=p["prompt_type"], content=p["content"])
+            db.add(db_prompt)
+        db.commit()
+
+        # 3. Load Rich Mock Data from file
+        mock_emails = get_mock_emails()
 
         created_emails = []
         for e in mock_emails:
@@ -127,13 +150,12 @@ def reset_database(db: Session = Depends(get_db)):
         
         db.commit()
 
-        # 3. Trigger AI Processing
-        print("Processing emails with AI...")
+        # 4. TRIGGER AGENT IMMEDIATELY
         for email in created_emails:
             db.refresh(email)
             process_single_email(email, db)
 
-        return {"message": "Inbox reset and AI processing complete."}
+        return {"message": "Inbox reset, Prompts seeded, and AI processing complete."}
         
     except Exception as e:
         print(f"Reset Error: {e}")
