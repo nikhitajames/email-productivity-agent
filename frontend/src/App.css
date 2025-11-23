@@ -17,7 +17,7 @@
   --primary: #1a1a1a;
   --primary-foreground: #fdfbf7;
 
-  --secondary: #f4f2ed; /* Very light beige */
+  --secondary: #f4f2ed;
   --secondary-foreground: #1a1a1a;
 
   --muted: #f4f2ed;
@@ -35,7 +35,6 @@
 
   --radius: 0.5rem;
 
-  /* Sidebar specific */
   --sidebar: #f7f6f2;
   --sidebar-foreground: #1a1a1a;
   --sidebar-primary: #1a1a1a;
@@ -46,7 +45,6 @@
   --sidebar-ring: #1a1a1a;
 }
 
-/* Global Reset */
 html,
 body,
 #root {
@@ -58,7 +56,6 @@ body,
   color: var(--foreground);
 }
 
-/* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
 }
@@ -70,7 +67,6 @@ body,
   border-radius: 20px;
 }
 
-/* Login Page*/
 .login-wrapper {
   position: fixed;
   inset: 0;

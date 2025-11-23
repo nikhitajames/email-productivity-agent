@@ -15,7 +15,6 @@ body,
   font-family: "Inter", sans-serif;
 }
 
-/* --- LOGIN PAGE --- */
 .login-wrapper {
   position: fixed;
   inset: 0;
@@ -27,7 +26,6 @@ body,
   z-index: 50;
 }
 
-/* --- SCROLLBARS --- */
 ::-webkit-scrollbar {
   width: 6px;
 }

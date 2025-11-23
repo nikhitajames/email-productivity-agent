@@ -12,7 +12,7 @@ class PromptCreate(PromptBase):
 class PromptResponse(PromptBase):
     id: int
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class EmailBase(BaseModel):
     sender: str
@@ -27,4 +27,23 @@ class EmailResponse(EmailBase):
     suggested_reply: Optional[str] = None
     
     class Config:
-        orm_mode = True
+        from_attributes = True
+
+class DraftBase(BaseModel):
+    recipient: str
+    subject: str
+    body: str
+
+class DraftCreate(DraftBase):
+    pass
+
+class DraftResponse(DraftBase):
+    id: int
+    timestamp: datetime
+    class Config:
+        from_attributes = True
+
+class GenerateRequest(BaseModel):
+    recipient: str
+    subject: str
+    instructions: str

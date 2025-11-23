@@ -13,9 +13,8 @@ class Email(Base):
     timestamp = Column(DateTime, default=datetime.utcnow)
     is_read = Column(Boolean, default=False)
     
-  
     category = Column(String, default="Uncategorized") 
-    action_items = Column(JSON, default=[])            
+    action_items = Column(JSON, default={})            
     suggested_reply = Column(Text, nullable=True)      
     
 class Prompt(Base):
@@ -25,3 +24,12 @@ class Prompt(Base):
     prompt_type = Column(String, unique=True) 
     content = Column(Text)                   
     last_updated = Column(DateTime, default=datetime.utcnow)
+
+class Draft(Base):
+    __tablename__ = "drafts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    recipient = Column(String)
+    subject = Column(String)
+    body = Column(Text)
+    timestamp = Column(DateTime, default=datetime.utcnow)

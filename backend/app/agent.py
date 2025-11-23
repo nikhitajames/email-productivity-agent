@@ -22,12 +22,11 @@ class AgentState(TypedDict):
     email_body: str
     sender: str
     category: str
-    action_items: Dict[str, Any] # Changed to Dict
+    action_items: Dict[str, Any] # Changed to Dict as requested
     draft: str
     categorize_prompt: str
     action_prompt: str
     reply_prompt: str
-
 
 def categorize_node(state: AgentState):
     """Determine the category."""
@@ -104,7 +103,6 @@ def draft_reply_node(state: AgentState):
     response = llm.invoke(messages)
     return {"draft": response.content.strip()}
 
-
 workflow = StateGraph(AgentState)
 workflow.add_node("categorize", categorize_node)
 workflow.add_node("extract_actions", extract_actions_node)
@@ -115,6 +113,24 @@ workflow.add_edge("extract_actions", "draft_reply")
 workflow.add_edge("draft_reply", END)
 
 app_graph = workflow.compile()
+
+def generate_new_email(recipient: str, subject: str, instructions: str, db: Session):
+    """Generates a new email body based on user instructions. Required for Compose feature."""
+    style_prompt = db.query(models.Prompt).filter_by(prompt_type="auto_reply").first()
+    style_content = style_prompt.content if style_prompt else "Be professional and concise."
+
+    system_prompt = (
+        f"You are an AI Email Assistant. Your task is to write a new email.\n"
+        f"Style Guide/Tone: {style_content}\n"
+        f"Recipient: {recipient}\n"
+        f"Subject: {subject}\n"
+        f"Instructions: {instructions}\n\n"
+        f"Output ONLY the email body. Do not include the subject line, greeting, or signature unless implicit in the style."
+    )
+    
+    messages = [HumanMessage(content=system_prompt)]
+    response = llm.invoke(messages)
+    return response.content.strip()
 
 def process_single_email(email: models.Email, db: Session):
     cat_prompt = db.query(models.Prompt).filter_by(prompt_type="categorize").first()
