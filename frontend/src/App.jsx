@@ -42,7 +42,7 @@ export default function App() {
   const [loading, setLoading] = useState(false);
 
   const [isChatOpen, setIsChatOpen] = useState(false);
-  const [viewMode, setViewMode] = useState("inbox"); // "inbox" or "drafts"
+  const [viewMode, setViewMode] = useState("inbox");
   const [showInbox, setShowInbox] = useState(true);
   const [isDraftOpen, setIsDraftOpen] = useState(false);
   const [showPrompts, setShowPrompts] = useState(false);
